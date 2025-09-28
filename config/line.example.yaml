@@ -1,0 +1,8 @@
+# Example line config (copy to line.yaml and edit)
+# Single line
+line: [100, 200, 500, 200]
+
+# Or multiple lines
+# lines:
+#   - [100, 200, 500, 200]
+#   - [300, 100, 300, 400]

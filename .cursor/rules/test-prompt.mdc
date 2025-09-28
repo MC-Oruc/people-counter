@@ -1,0 +1,51 @@
+---
+description: people-counter — Cursor Agent rule to verify code via compile + self-test after every change (Windows/pwsh + .venv)
+globs: **/*
+---
+
+# people-counter — Verification Rules (Cursor Agent)
+
+Ensure a consistent verification pipeline after any code change in this repository.
+
+## Core Rules
+
+- Project root: repository root (`.`)
+- Use relative paths only (no machine-specific absolute paths)
+- Python virtual environment folder: `.venv`
+- Run all commands from the repository root
+- Support all OS targets: Windows, Linux, and macOS
+
+## Mandatory Verification Pipeline (after every code change)
+
+1) Compile (fast syntax/symbol check)
+   - Windows (PowerShell/pwsh):
+     ```pwsh
+     .\\.venv\\Scripts\\python -m compileall -q .
+     ```
+   - Linux/macOS (bash/zsh):
+     ```bash
+     ./.venv/bin/python -m compileall -q .
+     ```
+   - If this fails: summarize the error, fix it, and rerun. Do not mark the task complete with a failing compile.
+
+2) If compile passes, run self-test
+   - Windows (PowerShell/pwsh):
+     ```pwsh
+     .\\.venv\\Scripts\\python -m people_counter self-test
+     ```
+   - Linux/macOS (bash/zsh):
+     ```bash
+     ./.venv/bin/python -m people_counter self-test
+     ```
+   - If exit code != 0 or there are clear error logs: diagnose, apply a small/low-risk fix, and rerun.
+   - If successful, report briefly: `Compile: PASS, Self-test: PASS`.
+
+
+## Reporting and Quality Gates
+
+- Keep logs concise; include only what’s necessary to explain failures.
+- End of run: always print a short "Quality gates" summary:
+  - Compile: PASS/FAIL
+  - Self-test: PASS/FAIL
+  - Brief note of fixes performed
+- Never mark the task complete while compile/test are failing—attempt fixes and re-verify.

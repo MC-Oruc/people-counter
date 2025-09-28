@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.cache/
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Local data
+outputs/
+
+# User-specific configs (keep examples tracked)
+config/*.yaml
+!config/*.example.yaml
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environments
+.venv/
+.env/
+
+# VSCode/Cursor
+.vscode/
+.idea/
+
+# Outputs
+output/
+
+# Always include anything under tests/
+!tests/**

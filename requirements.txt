@@ -1,0 +1,17 @@
+# Core dependencies (always installed)
+# Use contrib build to enable cv2.FaceDetectorYN (YuNet) support
+opencv-contrib-python>=4.8.0
+numpy>=1.24.0
+supervision>=0.16.0
+PySide6>=6.5.0
+PyYAML>=6.0.0
+requests>=2.31.0
+
+# AI/ML dependencies
+# NOTE: torch/torchvision are installed by setup.ps1 (CPU/GPU aware).
+# Installing ultralytics here is fine as long as torch is installed first
+# by the setup script; otherwise pip may pull CPU torch automatically.
+ultralytics>=8.0.0
+
+# Optional GPU/ONNX extras (install manually if needed):
+# onnxruntime-gpu
