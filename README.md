@@ -64,7 +64,7 @@ Run:
 ### CLI
 ```
 python -m people_counter -h
-python -m people_counter run -- --config config/app.yaml --save-output --output-path outputs/out.mp4
+python -m people_counter run -- --config config/app.yaml --save-output --output-path output/out.mp4
 python -m people_counter ui
 python -m people_counter edit-line --source 0 --output config/line.yaml
 python -m people_counter config-init
@@ -114,7 +114,7 @@ Check your CUDA version with nvidia-smi.
 - Model seçici: `models/` klasöründeki `.pt` (YOLOv8) ve `.onnx` (YuNet yüz) dosyalarını otomatik listeler.
 - Konfigürasyon dosyaları: `config/app.yaml` ve `config/line.yaml`.
 - CLI: `python -m people_counter {run|ui|edit-line|config-init}`.
-- UI kaynak seçici: Kamera indeksi (`0`) ya da `tests/` ve `outputs/` altındaki videolar; ayrıca dosya gezginiyle seçim.
+- UI kaynak seçici: Kamera indeksi (`0`) ya da `tests/` ve `output/` altındaki videolar; ayrıca dosya gezginiyle seçim.
 
 <a id="hizli-baslangic"></a>
 ## Hızlı Başlangıç
@@ -193,7 +193,7 @@ python -m venv .venv
 ## CLI Kullanımı
 ```bash
 python -m people_counter -h
-python -m people_counter run -- --config config/app.yaml --save-output --output-path outputs/out.mp4
+python -m people_counter run -- --config config/app.yaml --save-output --output-path output/out.mp4
 python -m people_counter ui
 python -m people_counter edit-line --source 0 --output config/line.yaml
 python -m people_counter config-init
@@ -266,10 +266,10 @@ ONNX modellerini GPU ile çalıştırmak isterseniz `onnxruntime-gpu` paketini a
 python -m people_counter run -- --config config/app.yaml
 
 # Dosyadan giriş, anotasyonlu çıktıyı kaydet
-python -m people_counter run -- --config config/app.yaml --source outputs/test.mp4 --save-output --output-path outputs/result.mp4
+python -m people_counter run -- --config config/app.yaml --source output/test.mp4 --save-output --output-path output/result.mp4
 
 # Test videolarıyla UI
-# UI içindeki kaynak seçiminden tests/ ve outputs/ altındaki videoları seçebilir
+# UI içindeki kaynak seçiminden tests/ ve output/ altındaki videoları seçebilir
 # ya da "Gozat..." ile herhangi bir dosyayı açabilirsiniz.
 ```
 
@@ -277,7 +277,7 @@ python -m people_counter run -- --config config/app.yaml --source outputs/test.m
 ## Git Sürümleme Politikası
 - Kullanıcıya özel konfigürasyon ve çıktılar Git ile izlenmez:
   - `config/*.yaml` (şablonlar izlenir: `config/*.example.yaml`)
-  - `outputs/` (üretilen videolar)
+  - `output/` (üretilen videolar)
 - Paylaşıma uygun konfigürasyonlar için şablon dosyalarını düzenleyip commit’leyin; kullanıcılar yerelde kopyalasın.
 
 <a id="sorun-giderme"></a>

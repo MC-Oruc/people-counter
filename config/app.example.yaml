@@ -4,7 +4,7 @@ model: models/yolov8n.pt
 confidence: 0.3
 device: cpu
 save_output: false
-output_path: outputs/output.mp4
+output_path: output/output.mp4
 no_view: false
 imgsz: 640
 max_frames: null

@@ -75,6 +75,9 @@ class VideoWidget(QtWidgets.QLabel):
 		self._drag: Optional[str] = None
 		self._grab_r = 12
 		self._edit_enabled: bool = True
+		# recording indicator state (drawn bottom-left)
+		self._rec_on: bool = False
+		self._rec_blink_on: bool = False
 
 	def enable_edit(self, enabled: bool) -> None:
 		self._edit_enabled = enabled
@@ -178,7 +181,38 @@ class VideoWidget(QtWidgets.QLabel):
 				p.drawEllipse(QtCore.QPoint(x1, y1), self._grab_r, self._grab_r)
 				p.setPen(QtGui.QPen(QtGui.QColor(255, 0, 0), 2))
 				p.drawEllipse(QtCore.QPoint(x2, y2), self._grab_r, self._grab_r)
+		# draw recording indicator at bottom-left (outer ring steady, inner blinking)
+		try:
+			if self._rec_on:
+				margin = 12
+				cx = margin
+				cy = self.height() - margin
+				R_outer = 8
+				R_inner = 5
+				# outer ring (steady)
+				p.setPen(QtGui.QPen(QtGui.QColor(255, 59, 48), 2))
+				p.setBrush(QtCore.Qt.BrushStyle.NoBrush)
+				p.drawEllipse(QtCore.QPoint(cx + R_outer, cy - R_outer), R_outer, R_outer)
+				# inner fill (blinking)
+				if self._rec_blink_on:
+					p.setPen(QtGui.QPen(QtGui.QColor(255, 59, 48), 1))
+					p.setBrush(QtGui.QBrush(QtGui.QColor(255, 59, 48)))
+					p.drawEllipse(QtCore.QPoint(cx + R_outer, cy - R_outer), R_inner, R_inner)
+		except Exception:
+			pass
 		p.end()
+
+	# Recording indicator control
+	def set_recording_indicator(self, on: bool) -> None:
+		self._rec_on = bool(on)
+		if not self._rec_on:
+			self._rec_blink_on = False
+		self.update()
+
+	def set_recording_blink(self, on: bool) -> None:
+		self._rec_blink_on = bool(on)
+		if self._rec_on:
+			self.update()
 
 	def _hit(self, x: int, y: int, cx: int, cy: int) -> bool:
 		dx, dy = x - cx, y - cy
@@ -517,6 +551,12 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.statusBar().addPermanentWidget(self.lbl_counts)
 		self.statusBar().addPermanentWidget(self.lbl_stream)
 
+		# Recording indicator (blinking) via overlay on video
+		self._rec_blink = False
+		self._rec_timer = QtCore.QTimer(self)
+		self._rec_timer.setInterval(600)
+		self._rec_timer.timeout.connect(self._on_rec_blink)
+
 	def _connect_signals(self) -> None:
 		self.btn_open.clicked.connect(self.on_open)
 		self.btn_toggle.clicked.connect(self.on_toggle)
@@ -661,9 +701,9 @@ class MainWindow(QtWidgets.QMainWindow):
 				self.cmb_camera_index.addItem(d)
 		finally:
 			self.cmb_camera_index.blockSignals(False)
-		# Populate videos from tests/
+		# Populate videos from tests/ and output/
 		videos: list[str] = []
-		for folder in (Path.cwd() / "tests",):
+		for folder in (Path.cwd() / "tests", Path.cwd() / "output"):
 			videos.extend(self._scan_video_files(folder))
 		self.cmb_video_list.blockSignals(True)
 		self.cmb_video_list.clear()
@@ -813,7 +853,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
 	def _display_frame(self, frame: np.ndarray, processing: bool) -> None:
 		# Always show the raw frame; overlays are drawn in VideoWidget.paintEvent
-		self.video.set_frame_size(frame.shape[1], frame.shape[0])
+		# Keep an up-to-date frame size for writer initialization (esp. camera/RTSP)
+		try:
+			w, h = int(frame.shape[1]), int(frame.shape[0])
+			if self.frame_size is None or self.frame_size != (w, h):
+				self.frame_size = (w, h)
+			self.video.set_frame_size(w, h)
+		except Exception:
+			pass
 		qimg = bgr_to_qimage(frame)
 		self.video.display_qimage(qimg)
 		# enqueue to worker if running
@@ -1277,21 +1324,72 @@ class MainWindow(QtWidgets.QMainWindow):
 			self._stop_worker_threads()
 
 	def on_record(self) -> None:
-		if self.cap is None or self.frame_size is None:
+		# Start/stop recording the displayed stream
+		if self.cap is None and self.last_frame is None:
+			QtWidgets.QMessageBox.information(self, "Kayit", "Kayit baslatilamadi: henuz bir kaynak acik degil.")
+			return
+		# Ensure we know the frame size; try to infer from last frame if needed
+		if self.frame_size is None and self.last_frame is not None:
+			try:
+				self.frame_size = (int(self.last_frame.shape[1]), int(self.last_frame.shape[0]))
+			except Exception:
+				self.frame_size = None
+		if self.frame_size is None:
+			QtWidgets.QMessageBox.information(self, "Kayit", "Kayit baslatilamadi: henuz goruntu alinmadi.")
 			return
 		self.state.recording = not self.state.recording
 		if self.state.recording:
-			Path("outputs").mkdir(parents=True, exist_ok=True)
+			Path("output").mkdir(parents=True, exist_ok=True)
 			stamp = time.strftime("%Y%m%d_%H%M%S")
-			path = f"outputs/record_{stamp}.mp4"
+			out_path = Path(f"output/record_{stamp}.mp4")
 			w, h = self.frame_size
-			fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-			self.writer = cv2.VideoWriter(path, fourcc, self.fps, (w, h))
+			# Make sure FPS is sane
+			fps = float(self.fps or 0.0)
+			if fps <= 0:
+				fps = float(self.base_fps or 25.0) or 25.0
+			# Try to open a writer with a few common codecs
+			writer = None
+			for fourcc_name in ("mp4v", "avc1"):
+				try:
+					fourcc = cv2.VideoWriter_fourcc(*fourcc_name)
+					wtr = cv2.VideoWriter(str(out_path), fourcc, fps, (w, h))
+					if wtr is not None and wtr.isOpened():
+						writer = wtr
+						break
+				except Exception:
+					pass
+			# Fallback to AVI/XVID if MP4 encoders are not available
+			if writer is None:
+				alt_path = out_path.with_suffix(".avi")
+				try:
+					fourcc = cv2.VideoWriter_fourcc(*"XVID")
+					wtr = cv2.VideoWriter(str(alt_path), fourcc, fps, (w, h))
+					if wtr is not None and wtr.isOpened():
+						writer = wtr
+						out_path = alt_path
+				except Exception:
+					pass
+			if writer is None:
+				self.state.recording = False
+				QtWidgets.QMessageBox.critical(self, "Kayit", "VideoWriter acilamadi. Lutfen gerekli codec'lerin kurulu oldugunu dogrulayin.")
+				return
+			self.writer = writer
 			self._start_writer_thread()
 			self.btn_record.setText("Kaydi Durdur")
+			self._start_rec_indicator()
+			# Small toast in status bar
+			try:
+				self.statusBar().showMessage(f"Kayit basladi: {out_path}", 4000)
+			except Exception:
+				pass
 		else:
 			self._stop_writer_thread()
 			self.btn_record.setText("Kaydi Baslat")
+			self._stop_rec_indicator()
+			try:
+				self.statusBar().showMessage("Kayit durduruldu.", 3000)
+			except Exception:
+				pass
 
 	def on_reset(self) -> None:
 		self.engine.reset_counts()
@@ -1511,6 +1609,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		except Exception:
 			pass
 		self.timer.stop()
+		self._stop_rec_indicator()
 		self._stop_worker_threads()
 		self._stop_writer_thread()
 		self._stop_capture_thread()
@@ -1863,6 +1962,30 @@ class MainWindow(QtWidgets.QMainWindow):
 					self.writer.write(fr)
 			except Exception:
 				pass
+
+	# -------- Recording indicator helpers --------
+	def _on_rec_blink(self) -> None:
+		try:
+			self._rec_blink = not self._rec_blink
+			self.video.set_recording_blink(self._rec_blink)
+		except Exception:
+			pass
+
+	def _start_rec_indicator(self) -> None:
+		try:
+			self.video.set_recording_indicator(True)
+			if not self._rec_timer.isActive():
+				self._rec_blink = False
+				self._rec_timer.start()
+		except Exception:
+			pass
+
+	def _stop_rec_indicator(self) -> None:
+		try:
+			self._rec_timer.stop()
+			self.video.set_recording_indicator(False)
+		except Exception:
+			pass
 
 
 def main() -> int:

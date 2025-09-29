@@ -20,7 +20,7 @@ model: "models/yolov8n.pt"
 confidence: 0.3
 device: "cpu"
 save_output: false
-output_path: "outputs/output.mp4"
+output_path: "output/output.mp4"
 no_view: false
 imgsz: 640
 max_frames: null
@@ -56,7 +56,7 @@ class AppConfig:
 	confidence: float = 0.3
 	device: str = "cpu"
 	save_output: bool = False
-	output_path: str = "outputs/output.mp4"
+	output_path: str = "output/output.mp4"
 	view: bool = True
 	imgsz: int = 640
 	max_frames: Optional[int] = None
@@ -107,7 +107,7 @@ def build_config(argv: Optional[list[str]] = None) -> AppConfig:
 	parser.add_argument("--confidence", type=float, default=0.3, help="Tespit icin minimum guven")
 	parser.add_argument("--device", type=str, default="cpu", help="Aygit: cpu/cuda (YOLO icin)")
 	parser.add_argument("--save-output", action="store_true", help="Cikti videoyu kaydet")
-	parser.add_argument("--output-path", type=str, default="outputs/output.mp4", help="Cikti video yolu")
+	parser.add_argument("--output-path", type=str, default="output/output.mp4", help="Cikti video yolu")
 	parser.add_argument("--no-view", action="store_true", help="Pencere gosterme")
 	parser.add_argument("--imgsz", type=int, default=640, help="Girdi boyutu")
 	parser.add_argument("--max-frames", type=int, default=None, help="Maksimum kare sayisi (test icin)")
