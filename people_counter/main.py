@@ -61,7 +61,7 @@ def _overlay_help(frame: np.ndarray, text: str) -> np.ndarray:
 def interactive_edit(window_name: str, frame: np.ndarray, line_xyxy: Tuple[int, int, int, int]) -> Tuple[int, int, int, int]:
 	line = _DraggableLine(*line_xyxy)
 	cv2.setMouseCallback(window_name, line.on_mouse)
-	text = "Noktayi surukle: Sol tik. Kaydet: S. Iptal: ESC/Q"
+	text = "Noktayı sürükle: Sol tık. Kaydet: S. İptal: ESC/Q"
 	while True:
 		disp = frame.copy()
 		disp = line.draw(disp)
@@ -91,7 +91,7 @@ def main(argv: List[str] | None = None) -> int:
 	except Exception:
 		pass
 	if not cap.isOpened():
-		raise RuntimeError(f"Kaynak acilamadi: {cfg.source}")
+		raise RuntimeError(f"Kaynak açılamadı: {cfg.source}")
 
 	fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
 	width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -108,7 +108,7 @@ def main(argv: List[str] | None = None) -> int:
 			line_to_use = (x, 0, x, max(0, height - 1))
 
 	# Optional interactive edit step before starting loop
-	window_name = "Kisi Sayaci"
+	window_name = "Kişi Sayacı"
 	if cfg.edit_line:
 		ret, preview = cap.read()
 		if ret:

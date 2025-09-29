@@ -28,24 +28,24 @@ class _ProcManager:
 
 	def start(self, key: str, args: list[str]) -> None:
 		if self.is_running(key):
-			print(f"[{key}] zaten calisiyor.")
+			print(f"[{key}] zaten çalışıyor.")
 			return
-		print(f"[{key}] baslatiliyor: {' '.join(args)}")
+		print(f"[{key}] başlatılıyor: {' '.join(args)}")
 		self.procs[key] = subprocess.Popen(args)
 		time.sleep(0.2)
-		print(f"[{key}] durum: {'calisiyor' if self.is_running(key) else 'bitti'}")
+		print(f"[{key}] durum: {'çalışıyor' if self.is_running(key) else 'bitti'}")
 
 	def stop(self, key: str, timeout: float = 2.0) -> None:
 		p = self.procs.get(key)
 		if p is None or p.poll() is not None:
-			print(f"[{key}] calismiyor.")
+			print(f"[{key}] çalışmıyor.")
 			return
 		print(f"[{key}] durduruluyor...")
 		p.terminate()
 		try:
 			p.wait(timeout=timeout)
 		except Exception:
-			print(f"[{key}] sonlandirilamadi, zorla kapatiliyor...")
+			print(f"[{key}] sonlandırılamadı, zorla kapatılıyor...")
 			p.kill()
 		print(f"[{key}] durdu.")
 
@@ -60,13 +60,13 @@ def _print_menu(pm: _ProcManager) -> None:
 	print(f"Config: {APP_YAML if APP_YAML.exists() else '(yok)'}")
 	print(f"Line:   {LINE_YAML if LINE_YAML.exists() else '(yok)'}")
 	print("-------------------------------")
-	print(f"1) Headless Baslat   [{'RUNNING' if pm.is_running('headless') else 'READY'}]")
+	print(f"1) Headless Başlat   [{'RUNNING' if pm.is_running('headless') else 'READY'}]")
 	print(f"2) Headless Durdur   [{'READY' if not pm.is_running('headless') else 'STOP'}]")
-	print(f"3) UI Baslat         [{'RUNNING' if pm.is_running('ui') else 'READY'}]")
+	print(f"3) UI Başlat         [{'RUNNING' if pm.is_running('ui') else 'READY'}]")
 	print(f"4) UI Durdur         [{'READY' if not pm.is_running('ui') else 'STOP'}]")
-	print("5) Cizgiyi Duzenle ve Kaydet")
-	print("6) Config Dosyalarini Olustur")
-	print("7) Cikis")
+	print("5) Çizgiyi Düzenle ve Kaydet")
+	print("6) Config Dosyalarını Oluştur")
+	print("7) Çıkış")
 	print()
 
 
@@ -77,7 +77,7 @@ def launcher_main() -> int:
 	while True:
 		try:
 			_print_menu(pm)
-			choice = input("Secim: ").strip()
+			choice = input("Seçim: ").strip()
 			if choice == '1':
 				args = [py, '-m', 'people_counter', 'run', '--', '--config', str(APP_YAML)]
 				pm.start('headless', args)
@@ -93,15 +93,15 @@ def launcher_main() -> int:
 				subprocess.call(args)
 			elif choice == '6':
 				_ensure_configs()
-				print("Config dosyalari hazir.")
+				print("Config dosyaları hazır.")
 			elif choice == '7' or choice.lower() in ('q', 'quit', 'exit'):
-				print("Cikiliyor...")
+				print("Çıkılıyor...")
 				pm.stop_all()
 				break
 			else:
-				print("Gecersiz secim.")
+				print("Geçersiz seçim.")
 		except KeyboardInterrupt:
-			print("\nCtrl+C algilandi. Cikiliyor...")
+			print("\nCtrl+C algılandı. Çıkılıyor...")
 			pm.stop_all()
 			break
 		except Exception as e:

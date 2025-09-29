@@ -73,7 +73,7 @@ class AppConfig:
 	def parse_line(arg: str) -> LineType:
 		parts = [int(p) for p in arg.split(",")]
 		if len(parts) != 4:
-			raise argparse.ArgumentTypeError("--line 'x1,y1,x2,y2' formatinda olmali")
+			raise argparse.ArgumentTypeError("--line 'x1,y1,x2,y2' formatında olmalı")
 		return parts[0], parts[1], parts[2], parts[3]
 
 
@@ -99,27 +99,27 @@ def load_config_from_yaml(path: Optional[Union[str, Path]]) -> dict:
 
 def build_config(argv: Optional[list[str]] = None) -> AppConfig:
 	parser = argparse.ArgumentParser(
-		description="Kisi sayaci: Sanal cizgi kesme ile giris/cikis sayimi"
+		description="Kişi sayacı: Sanal çizgi kesme ile giriş/çıkış sayımı"
 	)
 	parser.add_argument("--source", type=str, default="0", help="Kamera indeksi, video yolu veya RTSP URL")
-	parser.add_argument("--line", type=AppConfig.parse_line, default=(100, 200, 500, 200), help="Cizgi: x1,y1,x2,y2")
-	parser.add_argument("--model", type=str, default="yolov8n.pt", help="YOLO model dosyasi veya ONNX (YuNet)")
-	parser.add_argument("--confidence", type=float, default=0.3, help="Tespit icin minimum guven")
-	parser.add_argument("--device", type=str, default="cpu", help="Aygit: cpu/cuda (YOLO icin)")
-	parser.add_argument("--save-output", action="store_true", help="Cikti videoyu kaydet")
-	parser.add_argument("--output-path", type=str, default="output/output.mp4", help="Cikti video yolu")
-	parser.add_argument("--no-view", action="store_true", help="Pencere gosterme")
+	parser.add_argument("--line", type=AppConfig.parse_line, default=(100, 200, 500, 200), help="Çizgi: x1,y1,x2,y2")
+	parser.add_argument("--model", type=str, default="yolov8n.pt", help="YOLO model dosyası veya ONNX (YuNet)")
+	parser.add_argument("--confidence", type=float, default=0.3, help="Tespit icin minimum güven")
+	parser.add_argument("--device", type=str, default="cpu", help="Aygıt: cpu/cuda (YOLO icin)")
+	parser.add_argument("--save-output", action="store_true", help="Çıktı videoyu kaydet")
+	parser.add_argument("--output-path", type=str, default="output/output.mp4", help="Çıktı video yolu")
+	parser.add_argument("--no-view", action="store_true", help="Pencere gösterme")
 	parser.add_argument("--imgsz", type=int, default=640, help="Girdi boyutu")
-	parser.add_argument("--max-frames", type=int, default=None, help="Maksimum kare sayisi (test icin)")
-	parser.add_argument("--line-bottom", action="store_true", help="Cizgiyi ekranin en altina yerlestir")
+	parser.add_argument("--max-frames", type=int, default=None, help="Maksimum kare sayısı (test icin)")
+	parser.add_argument("--line-bottom", action="store_true", help="Çizgiyi ekranın en altına yerleştir")
 	parser.add_argument("--line-bottom-offset", type=int, default=0, help="Alttan piksel offseti")
-	parser.add_argument("--line-vertical-center", action="store_true", help="Dikey cizgiyi ekran ortasina yerlestir")
-	parser.add_argument("--line-vertical-offset", type=int, default=0, help="Ortadan saga(+)/sola(-) piksel offseti")
-	parser.add_argument("--edit-line", action="store_true", help="Fare ile cizgi noktalarini duzenle")
-	parser.add_argument("--save-line-path", type=str, default=None, help="S tusu ile kaydetmek icin YAML dosya yolu")
-	parser.add_argument("--config", type=str, default=str(Path.cwd() / "config" / "app.yaml"), help="YAML konfig dosyasi (varsayilan: config/app.yaml)")
+	parser.add_argument("--line-vertical-center", action="store_true", help="Dikey çizgiyi ekran ortasına yerleştir")
+	parser.add_argument("--line-vertical-offset", type=int, default=0, help="Ortadan sağa(+)/sola(-) piksel offseti")
+	parser.add_argument("--edit-line", action="store_true", help="Fare ile çizgi noktalarını düzenle")
+	parser.add_argument("--save-line-path", type=str, default=None, help="S tuşu ile kaydetmek icin YAML dosya yolu")
+	parser.add_argument("--config", type=str, default=str(Path.cwd() / "config" / "app.yaml"), help="YAML konfig dosyası (varsayılan: config/app.yaml)")
 	parser.add_argument("--mode", type=str, choices=["body", "head"], default="body", help="Target mode: body/head")
-	parser.add_argument("--line-band-px", type=int, default=0, help="Sayim cizgisi etrafinda ROI bant genligi (px)")
+	parser.add_argument("--line-band-px", type=int, default=0, help="Sayım çizgisi etrafında ROI bant genişliği (px)")
 
 	args = parser.parse_args(argv)
 

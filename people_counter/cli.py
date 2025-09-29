@@ -48,58 +48,58 @@ def cmd_edit_line(args: argparse.Namespace) -> int:
 	path.parent.mkdir(parents=True, exist_ok=True)
 	cap = open_capture(source)
 	if not cap.isOpened():
-		print(f"Kaynak acilamadi: {source}")
+		print(f"Kaynak açılamadı: {source}")
 		return 1
 	ret, frame = cap.read()
 	cap.release()
 	if not ret:
-		print("Kare okunamadi")
+		print("Kare okunamadı")
 		return 1
-	cv2.namedWindow("Cizgi Duzenle", cv2.WINDOW_NORMAL)
+	cv2.namedWindow("Çizgi Düzenle", cv2.WINDOW_NORMAL)
 	# Load per-source saved line if any, fallback to old global schema
 	init_line = load_line_for_source(path, source)
-	edited = interactive_edit("Cizgi Duzenle", frame, init_line)
+	edited = interactive_edit("Çizgi Düzenle", frame, init_line)
 	try:
 		# Save under per-source key
 		save_line_for_source(path, source, edited)
 	except Exception as e:
-		print(f"Kaydetme basarisiz: {e}")
+		print(f"Kaydetme başarısız: {e}")
 		return 1
-	print(f"Cizgi kaydedildi: {path}")
+	print(f"Çizgi kaydedildi: {path}")
 	return 0
 
 
 def cmd_config_init() -> int:
 	_ensure_config_files()
-	print(f"Olusturuldu/var: {DEFAULT_APP_CFG}")
-	print(f"Olusturuldu/var: {DEFAULT_LINE_CFG}")
+	print(f"Oluşturuldu/var: {DEFAULT_APP_CFG}")
+	print(f"Oluşturuldu/var: {DEFAULT_LINE_CFG}")
 	return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
 	p = argparse.ArgumentParser(
 		prog="people-counter",
-		description="Kisi sayaci CLI",
+		description="Kişi sayacı CLI",
 	)
 	p.add_argument("--version", action="version", version=f"people-counter {__version__}")
 	sub = p.add_subparsers(dest="cmd", required=True)
 
-	prun = sub.add_parser("run", help="Baslat (headless)")
-	prun.add_argument("args", nargs=argparse.REMAINDER, help="Uygulamaya aktarilacak argumanlar")
+	prun = sub.add_parser("run", help="Başlat (headless)")
+	prun.add_argument("args", nargs=argparse.REMAINDER, help="Uygulamaya aktarılacak argümanlar")
 
-	pui = sub.add_parser("ui", help="Qt arayuzunu baslat")
+	pui = sub.add_parser("ui", help="Qt arayüzünü başlat")
 	# No extra args for now
 
-	pedit = sub.add_parser("edit-line", help="Cizgiyi duzenle ve kaydet")
+	pedit = sub.add_parser("edit-line", help="Çizgiyi düzenle ve kaydet")
 	pedit.add_argument("--source", type=str, default="0", help="Kamera indeksi, video yolu veya RTSP URL")
-	pedit.add_argument("--output", type=str, default=str(DEFAULT_LINE_CFG), help="Cizgi YAML cikti yolu")
+	pedit.add_argument("--output", type=str, default=str(DEFAULT_LINE_CFG), help="Çizgi YAML çıktı yolu")
 
-	pcfg = sub.add_parser("config-init", help="Varsayilan config dosyalarini olustur")
+	pcfg = sub.add_parser("config-init", help="Varsayılan config dosyalarını oluştur")
 
-	pst = sub.add_parser("self-test", help="Hizli oz-test: 10 kare CPU/GPU + UI ac/kapat")
+	pst = sub.add_parser("self-test", help="Hızlı öz-test: 10 kare CPU/GPU + UI aç/kapat")
 
 	# Diagnostics: device info
-	pdiag = sub.add_parser("device-info", help="CUDA/cihaz teshis bilgisi yazdirir")
+	pdiag = sub.add_parser("device-info", help="CUDA/cihaz teşhis bilgisi yazdırır")
 	pdiag.add_argument("--device", default="cpu", help="cpu | gpu | cuda | cuda:<index>")
 
 	return p

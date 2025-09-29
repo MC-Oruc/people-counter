@@ -331,7 +331,7 @@ class LoadingOverlay(QtWidgets.QWidget):
 class MainWindow(QtWidgets.QMainWindow):
 	def __init__(self) -> None:
 		super().__init__()
-		self.setWindowTitle("Kisi Sayaci GUI")
+		self.setWindowTitle("Kişi Sayacı GUI")
 		self.resize(1100, 720)
 
 		self.state = AppState()
@@ -369,17 +369,17 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.slider_seek.setPageStep(1)
 
 		# Controls
-		self.btn_open = QtWidgets.QPushButton("Kaynak Ac/Baslat")
-		self.btn_toggle = QtWidgets.QPushButton("Taramayi Baslat")
-		self.btn_record = QtWidgets.QPushButton("Kaydi Baslat")
-		self.btn_reset = QtWidgets.QPushButton("Sayaci Sifirla")
-		self.btn_save = QtWidgets.QPushButton("Cizgileri Kaydet")
-		self.chk_edit = QtWidgets.QCheckBox("Cizgiyi Duzenle")
+		self.btn_open = QtWidgets.QPushButton("Kaynak Aç/Başlat")
+		self.btn_toggle = QtWidgets.QPushButton("Taramayı Başlat")
+		self.btn_record = QtWidgets.QPushButton("Kaydı Başlat")
+		self.btn_reset = QtWidgets.QPushButton("Sayacı Sıfırla")
+		self.btn_save = QtWidgets.QPushButton("Çizgileri Kaydet")
+		self.chk_edit = QtWidgets.QCheckBox("Çizgiyi Düzenle")
 		self.chk_edit.setChecked(True)
-		self.chk_show_trails = QtWidgets.QCheckBox("Izleri Goster")
+		self.chk_show_trails = QtWidgets.QCheckBox("İzleri Göster")
 		self.chk_show_trails.setChecked(True)
 		self.chk_rtsp_quality = QtWidgets.QCheckBox("RTSP: Kaliteyi Tercih Et")
-		self.chk_rtsp_quality.setToolTip("RTSP icin daha buyuk tampon ve zaman asimlari (daha az artifakt, daha yuksek gecikme)")
+		self.chk_rtsp_quality.setToolTip("RTSP için daha büyük tampon ve zaman aşımları (daha az artefakt, daha yüksek gecikme)")
 
 		# Source categories and per-category controls
 		self.cmb_source_category = QtWidgets.QComboBox()
@@ -398,7 +398,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.cmb_video_list.setEditable(True)
 		self.cmb_video_list.setInsertPolicy(QtWidgets.QComboBox.InsertPolicy.InsertAtTop)
 		self.cmb_video_list.setMinimumWidth(220)
-		self.btn_browse_video = QtWidgets.QPushButton("Gozat...")
+		self.btn_browse_video = QtWidgets.QPushButton("Gözat...")
 		_vid_row = QtWidgets.QHBoxLayout()
 		_vid_row.addWidget(self.cmb_video_list, 1)
 		_vid_row.addWidget(self.btn_browse_video)
@@ -419,7 +419,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.source_stack.addWidget(rtsp_panel)
 
 		# Video controls (enabled only for file sources)
-		self.lbl_speed = QtWidgets.QLabel("Hiz: 1.00x")
+		self.lbl_speed = QtWidgets.QLabel("Hız: 1.00x")
 		self.slider_speed = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
 		self.slider_speed.setRange(10, 1700)  # 0.10x .. 17.00x
 		self.slider_speed.setValue(int(self.state.video_speed_mult * 100))
@@ -429,14 +429,15 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.conf_slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
 		self.conf_slider.setRange(5, 90)
 		self.conf_slider.setValue(int(self.state.confidence * 100))
-		self.lbl_conf = QtWidgets.QLabel(f"Guven: {self.state.confidence:.2f}")
+		self.lbl_conf = QtWidgets.QLabel(f"Güven: {self.state.confidence:.2f}")
 
 		self.cmb_mode = QtWidgets.QComboBox()
-		self.cmb_mode.addItems(["body", "head"])  # Body / Head
+		self.cmb_mode.addItem("Vücut", userData="body")
+		self.cmb_mode.addItem("Kafa", userData="head")
 		# Counting method selector
 		self.cmb_count_method = QtWidgets.QComboBox()
 		self._init_count_method_combo()
-		self.cmb_count_method.setToolTip("Sayma mantigi:\n- Varsayilan (LineZone): Supervision LineZone (merkez tabanli)\n- Merkez Nokta: BBox merkezi cizgiyi karsiladiginda\n- Alt Kenar: BBox'in alt kenari (ayaklar) cizgiyi gectiginde\n- BBox Yol Kesisimi: Tum kutu once bir tarafta, sonra diger tarafta oldugunda")
+		self.cmb_count_method.setToolTip("Sayma mantığı:\n- Varsayılan (LineZone): Supervision LineZone (merkez tabanlı)\n- Merkez Nokta: BBox merkezi çizgiyi karşıladığında\n- Alt Kenar: BBox'in alt kenarı (ayaklar) çizgiyi geçtiğinde\n- BBox Yol Kesişimi: Tüm kutu önce bir tarafta, sonra diğer tarafta olduğunda")
 		# Device/GPU controls (reworked)
 		self.rdo_cpu = QtWidgets.QRadioButton("CPU")
 		self.rdo_gpu = QtWidgets.QRadioButton("GPU")
@@ -446,16 +447,16 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.cmb_backend = QtWidgets.QComboBox()  # GPU module availability summary
 		self.btn_refresh_backends = QtWidgets.QPushButton("Yenile")
 		self.chk_half = QtWidgets.QCheckBox("FP16 (half)")
-		self.chk_half.setToolTip("CUDA'da FP16 ile inferans (daha hizli, daha az bellek) — yalnizca GPU'da anlamli")
+		self.chk_half.setToolTip("CUDA'da FP16 ile inferans (daha hızlı, daha az bellek) — yalnızca GPU'da anlamlı")
 
 		# ROI band controls
 		self.spin_roi_band = QtWidgets.QSpinBox()
 		self.spin_roi_band.setRange(0, 512)
 		self.spin_roi_band.setValue(0)
-		self.chk_roi_show = QtWidgets.QCheckBox("ROI Bandini Goster")
+		self.chk_roi_show = QtWidgets.QCheckBox("ROI Bandını Göster")
 		self.chk_roi_show.setChecked(True)
 
-		self.lbl_counts = QtWidgets.QLabel("Giris: 0 | Cikis: 0")
+		self.lbl_counts = QtWidgets.QLabel("Giriş: 0 | Çıkıs: 0")
 
 		self.form = QtWidgets.QFormLayout()
 		self.form.addRow("Kaynak Tipi:", self.cmb_source_category)
@@ -490,7 +491,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		_cuda_row.addWidget(self.btn_refresh_cuda)
 		_cuda_row_w = QtWidgets.QWidget()
 		_cuda_row_w.setLayout(_cuda_row)
-		_dev_layout.addRow("CUDA Aygiti:", _cuda_row_w)
+		_dev_layout.addRow("CUDA Aygıtı:", _cuda_row_w)
 		_dev_layout.addRow("FP16:", self.chk_half)
 		_backend_row = QtWidgets.QHBoxLayout()
 		_backend_row.addWidget(self.cmb_backend)
@@ -510,8 +511,8 @@ class MainWindow(QtWidgets.QMainWindow):
 		# Lines management group
 		self.list_lines = QtWidgets.QListWidget()
 		self.list_lines.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-		self.btn_add_line = QtWidgets.QPushButton("Cizgi Ekle")
-		self.btn_remove_line = QtWidgets.QPushButton("Seciliyi Sil")
+		self.btn_add_line = QtWidgets.QPushButton("Çizgi Ekle")
+		self.btn_remove_line = QtWidgets.QPushButton("Seçiliyi Sil")
 		_lines_btn_row = QtWidgets.QHBoxLayout()
 		_lines_btn_row.addWidget(self.btn_add_line)
 		_lines_btn_row.addWidget(self.btn_remove_line)
@@ -525,7 +526,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		_lines_group_layout.addWidget(self.list_lines)
 		_lines_group_layout.addLayout(_lines_btn_row)
 		_lines_group_layout.addLayout(_lines_ctrl_row)
-		_lines_group = QtWidgets.QGroupBox("Cizgiler")
+		_lines_group = QtWidgets.QGroupBox("Çizgiler")
 		_lines_group.setLayout(_lines_group_layout)
 
 		buttons_layout = QtWidgets.QGridLayout()
@@ -535,7 +536,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		buttons_layout.addWidget(self.btn_reset, 0, 3)
 		# RTSP kalite secenegi RTSP panelinde gosteriliyor
 		# Stream metrics label
-		self.lbl_stream = QtWidgets.QLabel("Akis: - | Gecikme: - | FPS: -")
+		self.lbl_stream = QtWidgets.QLabel("Akış: - | Gecikme: - | FPS: -")
 		buttons_layout.addWidget(self.lbl_counts, 2, 1, 1, 3)
 		buttons_layout.addWidget(self.lbl_stream, 3, 1, 1, 3)
 
@@ -857,7 +858,7 @@ class MainWindow(QtWidgets.QMainWindow):
 	def on_speed_changed(self, val: int) -> None:
 		# Slider maps 10..1700 -> 0.10x..17.00x
 		self.state.video_speed_mult = max(0.1, min(17.0, val / 100.0))
-		self.lbl_speed.setText(f"Hiz: {self.state.video_speed_mult:.2f}x")
+		self.lbl_speed.setText(f"Hız: {self.state.video_speed_mult:.2f}x")
 		if self.is_video and self.state.running:
 			play_fps = max(1e-3, self.base_fps * self.state.video_speed_mult)
 			interval = int(max(1, round(1000.0 / play_fps)))
@@ -897,7 +898,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		self._is_scrubbing = True
 		if self.state.running:
 			self.state.running = False
-			self.btn_toggle.setText("Taramayi Baslat")
+			self.btn_toggle.setText("Taramayı Başlat")
 
 	def on_seek_released(self) -> None:
 		if not self.is_video:
@@ -931,12 +932,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 	def on_mode_changed(self, text: str) -> None:
-		self.state.mode = text
+		mode = self.cmb_mode.currentData()
+		self.state.mode = mode
 		# Default models for convenience
-		if text == "head":
+		if mode == "head":
 			self.model_edit.setText("models/face_detection_yunet_2023mar.onnx")
 			self._select_first_matching_model_suffix([".onnx"])
-		elif text == "body":
+		elif mode == "body":
 			if "models/" in self.model_edit.text():
 				self.model_edit.setText("models/yolov8n.pt")
 			self._select_first_matching_model_suffix([".pt"]) 
@@ -981,7 +983,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 	def on_conf_changed(self, val: int) -> None:
 		self.state.confidence = round(val / 100.0, 2)
-		self.lbl_conf.setText(f"Guven: {self.state.confidence:.2f}")
+		self.lbl_conf.setText(f"Güven: {self.state.confidence:.2f}")
 		if self.engine.detector is not None:
 			self.engine.detector.confidence = self.state.confidence
 
@@ -1028,7 +1030,7 @@ class MainWindow(QtWidgets.QMainWindow):
 			prev_running = bool(self.state.running)
 			# Pause processing while switching device
 			self.state.running = False
-			self.btn_toggle.setText("Taramayi Baslat")
+			self.btn_toggle.setText("Taramayı Başlat")
 			# Prepare device string
 			dev_str = 'cpu'
 			if use_gpu:
@@ -1037,7 +1039,7 @@ class MainWindow(QtWidgets.QMainWindow):
 			if self.engine.detector is not None and hasattr(self.engine.detector, 'set_device'):
 				# If GPU requested but model is CPU-only, warn and force CPU
 				if use_gpu and hasattr(self.engine.detector, 'is_gpu_capable') and not self.engine.detector.is_gpu_capable():
-					QtWidgets.QMessageBox.information(self, "Model GPU Desteklemiyor", "Secilen model GPU tabanli degil (yalnizca CPU). CPU'ya geciliyor.")
+					QtWidgets.QMessageBox.information(self, "Model GPU Desteklemiyor", "Seçilen model GPU tabanlı değil (yalnızca CPU). CPU'ya geçiliyor.")
 					self._force_cpu_selection()
 					return
 				self.engine.detector.set_device(dev_str)
@@ -1050,7 +1052,7 @@ class MainWindow(QtWidgets.QMainWindow):
 			# Resume previous run state (if source open)
 			if prev_running:
 				self.state.running = True
-				self.btn_toggle.setText("Taramayi Durdur")
+				self.btn_toggle.setText("Taramayı Durdur")
 
 	def on_device_mode_toggled(self) -> None:
 		try:
@@ -1231,7 +1233,7 @@ class MainWindow(QtWidgets.QMainWindow):
 				return True
 		except Exception:
 			pass
-		QtWidgets.QMessageBox.warning(self, "Model Eksik", f"Model bulunamadi: {path}. Lütfen dosyayi indirin veya yolu degistirin.")
+		QtWidgets.QMessageBox.warning(self, "Model Eksik", f"Model bulunamadı: {path}. Lütfen dosyayı indirin veya yolu değiştirin.")
 		return False
 
 	def on_open(self) -> None:
@@ -1274,7 +1276,7 @@ class MainWindow(QtWidgets.QMainWindow):
 			self._refresh_backends()
 			if hasattr(self.engine.detector, 'set_device'):
 				if use_gpu and hasattr(self.engine.detector, 'is_gpu_capable') and not self.engine.detector.is_gpu_capable():
-					QtWidgets.QMessageBox.information(self, "Model GPU Desteklemiyor", "Secilen model GPU tabanli degil (yalnizca CPU). CPU'ya geciliyor.")
+					QtWidgets.QMessageBox.information(self, "Model GPU Desteklemiyor", "Seçilen model GPU tabanlı değil (yalnızca CPU). CPU'ya geçiliyor.")
 					self._force_cpu_selection()
 				else:
 					dev_str = self.cmb_device_variant.currentText().strip() if use_gpu else 'cpu'
@@ -1293,7 +1295,7 @@ class MainWindow(QtWidgets.QMainWindow):
 			self.cap = open_capture(self.state.source, prefer_quality=False)
 			if not self.cap.isOpened():
 				self._set_connecting(False)
-				QtWidgets.QMessageBox.critical(self, "Hata", f"Kaynak acilamadi: {self.state.source}")
+				QtWidgets.QMessageBox.critical(self, "Hata", f"Kaynak açılamadı: {self.state.source}")
 				return
 			cap_fps = self.cap.get(cv2.CAP_PROP_FPS) or 25.0
 			self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT) or -1)
@@ -1301,7 +1303,7 @@ class MainWindow(QtWidgets.QMainWindow):
 			# Establish base FPS and speed control
 			self.base_fps = float(cap_fps) if cap_fps and cap_fps > 0 else 25.0
 			self.fps = self.base_fps * self.state.video_speed_mult
-			self.lbl_speed.setText(f"Hiz: {self.state.video_speed_mult:.2f}x")
+			self.lbl_speed.setText(f"Hız: {self.state.video_speed_mult:.2f}x")
 			self.slider_speed.setValue(int(self.state.video_speed_mult * 100))
 			self._update_video_controls_enabled(True)
 		else:
@@ -1320,7 +1322,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		# Auto load lines for this session
 		self._auto_load_line()
 		# Prepare initial frame behavior
-		self.btn_toggle.setText("Taramayi Baslat")
+		self.btn_toggle.setText("Taramayı Başlat")
 		self.state.running = False
 		self.cur_frame_idx = 0
 		self.last_frame = None
@@ -1348,7 +1350,7 @@ class MainWindow(QtWidgets.QMainWindow):
 			if self.cap is None or not self.cap.isOpened():
 				return
 		self.state.running = not self.state.running
-		self.btn_toggle.setText("Taramayi Durdur" if self.state.running else "Taramayi Baslat")
+		self.btn_toggle.setText("Taramayı Durdur" if self.state.running else "Taramayı Başlat")
 		# Adjust timer for video playback
 		if self.is_video:
 			if self.state.running:
@@ -1366,7 +1368,7 @@ class MainWindow(QtWidgets.QMainWindow):
 	def on_record(self) -> None:
 		# Start/stop recording the displayed stream
 		if self.cap is None and self.last_frame is None:
-			QtWidgets.QMessageBox.information(self, "Kayit", "Kayit baslatilamadi: henuz bir kaynak acik degil.")
+			QtWidgets.QMessageBox.information(self, "Kayıt", "Kayıt Başlatılamadı: henüz bir kaynak açık değil.")
 			return
 		# Ensure we know the frame size; try to infer from last frame if needed
 		if self.frame_size is None and self.last_frame is not None:
@@ -1375,7 +1377,7 @@ class MainWindow(QtWidgets.QMainWindow):
 			except Exception:
 				self.frame_size = None
 		if self.frame_size is None:
-			QtWidgets.QMessageBox.information(self, "Kayit", "Kayit baslatilamadi: henuz goruntu alinmadi.")
+			QtWidgets.QMessageBox.information(self, "Kayıt", "Kayıt Başlatılamadı: henüz görüntü alınmadı.")
 			return
 		self.state.recording = not self.state.recording
 		if self.state.recording:
@@ -1411,29 +1413,29 @@ class MainWindow(QtWidgets.QMainWindow):
 					pass
 			if writer is None:
 				self.state.recording = False
-				QtWidgets.QMessageBox.critical(self, "Kayit", "VideoWriter acilamadi. Lutfen gerekli codec'lerin kurulu oldugunu dogrulayin.")
+				QtWidgets.QMessageBox.critical(self, "Kayıt", "VideoWriter açılamadı. Lütfen gerekli codec'lerin kurulu olduğunu doğrulayın.")
 				return
 			self.writer = writer
 			self._start_writer_thread()
-			self.btn_record.setText("Kaydi Durdur")
+			self.btn_record.setText("Kaydı Durdur")
 			self._start_rec_indicator()
 			# Small toast in status bar
 			try:
-				self.statusBar().showMessage(f"Kayit basladi: {out_path}", 4000)
+				self.statusBar().showMessage(f"Kayıt başladi: {out_path}", 4000)
 			except Exception:
 				pass
 		else:
 			self._stop_writer_thread()
-			self.btn_record.setText("Kaydi Baslat")
+			self.btn_record.setText("Kaydı Başlat")
 			self._stop_rec_indicator()
 			try:
-				self.statusBar().showMessage("Kayit durduruldu.", 3000)
+				self.statusBar().showMessage("Kayıt durduruldu.", 3000)
 			except Exception:
 				pass
 
 	def on_reset(self) -> None:
 		self.engine.reset_counts()
-		self.lbl_counts.setText("Giris: 0 | Cikis: 0")
+		self.lbl_counts.setText("Giriş: 0 | Çıkış: 0")
 
 	def _auto_load_line(self) -> None:
 		try:
@@ -1482,7 +1484,7 @@ class MainWindow(QtWidgets.QMainWindow):
 				else:
 					save_lines(default_path, lines)
 		except Exception as e:
-			QtWidgets.QMessageBox.critical(self, "Hata", f"Kaydetme basarisiz: {e}")
+			QtWidgets.QMessageBox.critical(self, "Hata", f"Kaydetme başarısız: {e}")
 
 	def on_tick(self) -> None:
 		# If a reconnect requested showing overlay, do it now
@@ -1512,10 +1514,10 @@ class MainWindow(QtWidgets.QMainWindow):
 					dev = ''
 					try:
 						if self.engine.detector is not None and hasattr(self.engine.detector, 'get_device'):
-							dev = f" | Aygit: {self.engine.detector.get_device()}"
+							dev = f" | Aygıt: {self.engine.detector.get_device()}"
 					except Exception:
 						dev = ''
-					self.lbl_counts.setText(f"Giris: {cin} | Cikis: {cout}{dev}")
+					self.lbl_counts.setText(f"Giriş: {cin} | Çıkış: {cout}{dev}")
 				# display and optionally record
 				self._display_frame(frame_out, processing=False)
 				if self.state.recording and self.writer is not None:
@@ -1582,10 +1584,10 @@ class MainWindow(QtWidgets.QMainWindow):
 					dev = ''
 					try:
 						if self.engine.detector is not None and hasattr(self.engine.detector, 'get_device'):
-							dev = f" | Aygit: {self.engine.detector.get_device()}"
+							dev = f" | Aygıt: {self.engine.detector.get_device()}"
 					except Exception:
 						dev = ''
-					self.lbl_counts.setText(f"Giris: {cin} | Cikis: {cout}{dev}")
+					self.lbl_counts.setText(f"Giriş: {cin} | Çıkış: {cout}{dev}")
 			# display and optionally record
 			self.last_frame = frame
 			self._display_frame(frame, processing=False)
@@ -1600,7 +1602,7 @@ class MainWindow(QtWidgets.QMainWindow):
 				cap_fps = self._cap_fps_ewma if self._cap_fps_ewma > 0 else 0.0
 				jit = self._cap_jitter_ms_ewma if self._cap_jitter_ms_ewma > 0 else 0.0
 				ui_fps = self._ui_fps_ewma if self._ui_fps_ewma > 0 else 0.0
-				self.lbl_stream.setText(f"Akis FPS: {cap_fps:.1f} | UI FPS: {ui_fps:.1f} | Jitter: {jit:.0f}ms | Gecikme: {lat_ms:.0f}ms")
+				self.lbl_stream.setText(f"Akış FPS: {cap_fps:.1f} | UI FPS: {ui_fps:.1f} | Jitter: {jit:.0f}ms | Gecikme: {lat_ms:.0f}ms")
 				self._last_stream_label_update = time.time()
 
 	def _set_connecting(self, active: bool, reason: Optional[str] = None) -> None:
@@ -1640,7 +1642,7 @@ class MainWindow(QtWidgets.QMainWindow):
 			self.cap = None
 			self._is_connecting = False
 			# Show the same kind of popup content as before
-			QtWidgets.QMessageBox.critical(self, "Hata", f"Kaynak acilamadi: {self.state.source}")
+			QtWidgets.QMessageBox.critical(self, "Hata", f"Kaynak açılamadı: {self.state.source}")
 
 	def closeEvent(self, event: QtGui.QCloseEvent) -> None:
 		# Persist current UI settings
