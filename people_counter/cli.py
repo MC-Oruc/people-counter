@@ -98,6 +98,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 	pst = sub.add_parser("self-test", help="Hizli oz-test: 10 kare CPU/GPU + UI ac/kapat")
 
+	# Diagnostics: device info
+	pdiag = sub.add_parser("device-info", help="CUDA/cihaz teshis bilgisi yazdirir")
+	pdiag.add_argument("--device", default="cpu", help="cpu | gpu | cuda | cuda:<index>")
+
 	return p
 
 
@@ -116,6 +120,15 @@ def main(argv: Optional[list[str]] = None) -> int:
 	if args.cmd == "self-test":
 		from .selftest import run as selftest_run
 		return selftest_run()
+	if args.cmd == "device-info":
+		from .utils.device import resolve_device, cuda_diagnostics, default_half_for
+		print("[device-info] diagnostics:")
+		print(cuda_diagnostics())
+		resolved = resolve_device(getattr(args, 'device', 'cpu'))
+		print(f"[device-info] input device   : {getattr(args, 'device', 'cpu')}")
+		print(f"[device-info] resolved device: {resolved}")
+		print(f"[device-info] half precision : {default_half_for(resolved)}")
+		return 0
 	return 0
 
 

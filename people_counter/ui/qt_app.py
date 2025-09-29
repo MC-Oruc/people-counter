@@ -437,12 +437,16 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.cmb_count_method = QtWidgets.QComboBox()
 		self._init_count_method_combo()
 		self.cmb_count_method.setToolTip("Sayma mantigi:\n- Varsayilan (LineZone): Supervision LineZone (merkez tabanli)\n- Merkez Nokta: BBox merkezi cizgiyi karsiladiginda\n- Alt Kenar: BBox'in alt kenari (ayaklar) cizgiyi gectiginde\n- BBox Yol Kesisimi: Tum kutu once bir tarafta, sonra diger tarafta oldugunda")
-		self.cmb_device = QtWidgets.QComboBox()
-		self.cmb_device.addItems(["CPU", "GPU"])  # device selector
-		self.cmb_device_variant = QtWidgets.QComboBox()  # e.g., cuda:0, cuda:1, cpu
-		self.cmb_backend = QtWidgets.QComboBox()  # available GPU modules/backends
-		self.chk_half = QtWidgets.QCheckBox("CUDA FP16 (half)")
-		self.chk_half.setToolTip("CUDA'da FP16 ile inferans (hizli, bazi cihazlarda daha az bellek)")
+		# Device/GPU controls (reworked)
+		self.rdo_cpu = QtWidgets.QRadioButton("CPU")
+		self.rdo_gpu = QtWidgets.QRadioButton("GPU")
+		self.rdo_cpu.setChecked(True)
+		self.cmb_device_variant = QtWidgets.QComboBox()  # CUDA devices (cuda:0, cuda:1, ...)
+		self.btn_refresh_cuda = QtWidgets.QPushButton("Yenile")
+		self.cmb_backend = QtWidgets.QComboBox()  # GPU module availability summary
+		self.btn_refresh_backends = QtWidgets.QPushButton("Yenile")
+		self.chk_half = QtWidgets.QCheckBox("FP16 (half)")
+		self.chk_half.setToolTip("CUDA'da FP16 ile inferans (daha hizli, daha az bellek) — yalnizca GPU'da anlamli")
 
 		# ROI band controls
 		self.spin_roi_band = QtWidgets.QSpinBox()
@@ -472,13 +476,30 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.form.addRow(self.lbl_conf, self.conf_slider)
 		self.form.addRow("Hedef:", self.cmb_mode)
 		self.form.addRow("Sayma Yöntemi:", self.cmb_count_method)
-		self.form.addRow("Aygit:", self.cmb_device)
-		self._lbl_dev_variant = QtWidgets.QLabel("Aygit Secenek:")
-		self.form.addRow(self._lbl_dev_variant, self.cmb_device_variant)
-		self._lbl_backend = QtWidgets.QLabel("GPU Modulleri:")
-		self.form.addRow(self._lbl_backend, self.cmb_backend)
-		self._lbl_half = QtWidgets.QLabel("CUDA Secenek:")
-		self.form.addRow(self._lbl_half, self.chk_half)
+		# New device group
+		self.grp_device = QtWidgets.QGroupBox("Donanim (CPU/GPU)")
+		_dev_layout = QtWidgets.QFormLayout()
+		_r = QtWidgets.QHBoxLayout()
+		_r.addWidget(self.rdo_cpu)
+		_r.addWidget(self.rdo_gpu)
+		_r_w = QtWidgets.QWidget()
+		_r_w.setLayout(_r)
+		_dev_layout.addRow("Cihaz:", _r_w)
+		_cuda_row = QtWidgets.QHBoxLayout()
+		_cuda_row.addWidget(self.cmb_device_variant)
+		_cuda_row.addWidget(self.btn_refresh_cuda)
+		_cuda_row_w = QtWidgets.QWidget()
+		_cuda_row_w.setLayout(_cuda_row)
+		_dev_layout.addRow("CUDA Aygiti:", _cuda_row_w)
+		_dev_layout.addRow("FP16:", self.chk_half)
+		_backend_row = QtWidgets.QHBoxLayout()
+		_backend_row.addWidget(self.cmb_backend)
+		_backend_row.addWidget(self.btn_refresh_backends)
+		_backend_row_w = QtWidgets.QWidget()
+		_backend_row_w.setLayout(_backend_row)
+		_dev_layout.addRow("GPU Durumu:", _backend_row_w)
+		self.grp_device.setLayout(_dev_layout)
+		self.form.addRow(self.grp_device)
 		_roi_row = QtWidgets.QHBoxLayout()
 		_roi_row.addWidget(self.spin_roi_band)
 		_roi_row.addWidget(self.chk_roi_show)
@@ -571,8 +592,11 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.video.lineChanged.connect(self.on_line_changed)
 		self.video.linesChanged.connect(self.on_lines_changed)
 		self.cmb_mode.currentTextChanged.connect(self.on_mode_changed)
-		self.cmb_device.currentTextChanged.connect(self.on_device_changed)
-		self.cmb_device_variant.currentTextChanged.connect(self.on_device_variant_changed)
+		self.rdo_cpu.toggled.connect(self.on_device_mode_toggled)
+		self.rdo_gpu.toggled.connect(self.on_device_mode_toggled)
+		self.cmb_device_variant.currentTextChanged.connect(self.on_cuda_device_changed)
+		self.btn_refresh_cuda.clicked.connect(self._refresh_cuda_devices)
+		self.btn_refresh_backends.clicked.connect(self._refresh_backends)
 		self.cmb_model.currentTextChanged.connect(self.on_model_selected)
 		self.chk_half.toggled.connect(self.on_half_toggled)
 		self.spin_roi_band.valueChanged.connect(self.on_roi_band_changed)
@@ -618,9 +642,11 @@ class MainWindow(QtWidgets.QMainWindow):
 			self.on_source_category_changed(self.cmb_source_category.currentIndex())
 		except Exception:
 			pass
-		# Reflect device-dependent visibility
+		# Initialize device group visibility and lists
 		try:
-			self._update_device_controls_visibility()
+			self._refresh_cuda_devices()
+			self._refresh_backends()
+			self._update_device_group_visibility()
 		except Exception:
 			pass
 
@@ -797,32 +823,28 @@ class MainWindow(QtWidgets.QMainWindow):
 		except Exception:
 			pass
 
-	def _update_device_controls_visibility(self) -> None:
-		dev = self.cmb_device.currentText().lower()
-		is_gpu = (dev == 'gpu')
-		self.cmb_device_variant.setVisible(is_gpu)
-		self.chk_half.setVisible(is_gpu)
-		self.cmb_backend.setVisible(is_gpu)
-		# Hide corresponding labels, too
-		try:
-			self._lbl_dev_variant.setVisible(is_gpu)
-			self._lbl_backend.setVisible(is_gpu)
-			self._lbl_half.setVisible(is_gpu)
-		except Exception:
-			pass
+	def _update_device_group_visibility(self) -> None:
+		is_gpu = bool(self.rdo_gpu.isChecked())
+		self.cmb_device_variant.setEnabled(is_gpu)
+		self.btn_refresh_cuda.setEnabled(is_gpu)
+		self.chk_half.setEnabled(is_gpu)
+		self.cmb_backend.setEnabled(True)
+		self.btn_refresh_backends.setEnabled(True)
 
 	def _force_cpu_selection(self) -> None:
 		# Update UI to reflect CPU selection and set device on detector
 		try:
-			self.cmb_device.blockSignals(True)
+			self.rdo_cpu.blockSignals(True)
+			self.rdo_gpu.blockSignals(True)
 			self.cmb_device_variant.blockSignals(True)
-			self.cmb_device.setCurrentText("CPU")
-			self._refresh_device_variants('cpu')
-			idx = self.cmb_device_variant.findText('cpu')
+			self.rdo_cpu.setChecked(True)
+			self._refresh_cuda_devices()
+			idx = self.cmb_device_variant.findText('cuda:0')
 			if idx >= 0:
 				self.cmb_device_variant.setCurrentIndex(idx)
 		finally:
-			self.cmb_device.blockSignals(False)
+			self.rdo_cpu.blockSignals(False)
+			self.rdo_gpu.blockSignals(False)
 			self.cmb_device_variant.blockSignals(False)
 		try:
 			if self.engine.detector is not None and hasattr(self.engine.detector, 'set_device'):
@@ -943,17 +965,15 @@ class MainWindow(QtWidgets.QMainWindow):
 				self.engine.set_line(self.video.get_line())
 		except Exception:
 			pass
-		# Apply device selection for YOLO detectors
+		# Apply device selection for YOLO detectors using new CPU/GPU controls
 		try:
-			dev = self.cmb_device.currentText().lower()
+			use_gpu = bool(self.rdo_gpu.isChecked())
 			if hasattr(self.engine.detector, 'set_device'):
-				# Prefer explicit variant if selected
-				variant = self.cmb_device_variant.currentText().strip()
-				dev_str = variant if (dev == 'gpu' and variant.startswith('cuda')) else ('cuda' if dev == 'gpu' else 'cpu')
-				self.engine.detector.set_device(dev_str)
+				variant = (self.cmb_device_variant.currentText().strip() or 'cuda') if use_gpu else 'cpu'
+				self.engine.detector.set_device(variant)
 				# Apply half toggle if supported
 				if hasattr(self.engine.detector, 'set_half'):
-					self.engine.detector.set_half(self.chk_half.isChecked())
+					self.engine.detector.set_half(self.chk_half.isChecked() if use_gpu else False)
 		except Exception:
 			pass
 
@@ -1000,44 +1020,65 @@ class MainWindow(QtWidgets.QMainWindow):
 	def on_show_trails_toggled(self, checked: bool) -> None:
 		self.engine.viz.show_trails = checked
 
-	def on_device_changed(self, text: str) -> None:
+	def _apply_device_change(self, use_gpu: bool, device_text: str | None = None) -> None:
+		"""Safely apply device change while preserving run state and avoiding UI freeze."""
 		try:
-			dev = 'cuda' if text.lower() == 'gpu' else 'cpu'
-			# Populate device variant list
-			self._refresh_device_variants(dev)
-			self._update_device_controls_visibility()
+			prev_running = bool(self.state.running)
+			# Pause processing while switching device
+			self.state.running = False
+			self.btn_toggle.setText("Taramayi Baslat")
+			# Prepare device string
+			dev_str = 'cpu'
+			if use_gpu:
+				dev_str = (device_text or '').strip() or 'cuda'
+			# Apply to detector
 			if self.engine.detector is not None and hasattr(self.engine.detector, 'set_device'):
-				# If GPU selected but model is CPU-only, warn and force CPU
-				if dev == 'cuda' and hasattr(self.engine.detector, 'is_gpu_capable') and not self.engine.detector.is_gpu_capable():
-					QtWidgets.QMessageBox.information(self, "Model GPU Desteklemiyor", "Secilen model GPU tabanli degil (yalnizca CPU). Cihaz CPU'ya ayarlanacak.")
-					dev = 'cpu'
+				# If GPU requested but model is CPU-only, warn and force CPU
+				if use_gpu and hasattr(self.engine.detector, 'is_gpu_capable') and not self.engine.detector.is_gpu_capable():
+					QtWidgets.QMessageBox.information(self, "Model GPU Desteklemiyor", "Secilen model GPU tabanli degil (yalnizca CPU). CPU'ya geciliyor.")
 					self._force_cpu_selection()
-				variant = self.cmb_device_variant.currentText().strip()
-				dev_str = variant if (dev == 'cuda' and variant.startswith('cuda')) else dev
+					return
 				self.engine.detector.set_device(dev_str)
-				# Verify
-				if dev == 'cuda' and hasattr(self.engine.detector, 'get_device') and self.engine.detector.get_device() != 'cuda' and not self.engine.detector.get_device().startswith('cuda'):
-					QtWidgets.QMessageBox.information(self, "CUDA Kullanilamiyor", "GPU secildi ancak CUDA kullanilamadi. CUDA destekli PyTorch ve suruculerin yüklü oldugundan emin olun. CPU'ya düsüldü.")
 				# Apply half toggle if supported
 				if hasattr(self.engine.detector, 'set_half'):
-					self.engine.detector.set_half(self.chk_half.isChecked())
+					self.engine.detector.set_half(self.chk_half.isChecked() if use_gpu else False)
+			# Refresh backend summary after change
+			self._refresh_backends()
+		finally:
+			# Resume previous run state (if source open)
+			if prev_running:
+				self.state.running = True
+				self.btn_toggle.setText("Taramayi Durdur")
+
+	def on_device_mode_toggled(self) -> None:
+		try:
+			# Only act when a button becomes checked to avoid double handling
+			btn = self.sender()
+			if isinstance(btn, QtWidgets.QRadioButton) and not btn.isChecked():
+				return
+			self._update_device_group_visibility()
+			use_gpu = bool(self.rdo_gpu.isChecked())
+			self._apply_device_change(use_gpu, self.cmb_device_variant.currentText() if use_gpu else 'cpu')
+			# persist immediately
+			try:
+				self._save_ui_config()
+			except Exception:
+				pass
 		except Exception:
 			pass
 
-	def on_device_variant_changed(self, text: str) -> None:
+	def on_cuda_device_changed(self, text: str) -> None:
 		try:
 			if not text:
 				return
-			if self.engine.detector is not None and hasattr(self.engine.detector, 'set_device'):
-				# If variant indicates cuda:* but model is cpu-only, warn and switch to CPU
-				if text.lower().startswith('cuda') and hasattr(self.engine.detector, 'is_gpu_capable') and not self.engine.detector.is_gpu_capable():
-					QtWidgets.QMessageBox.information(self, "Model GPU Desteklemiyor", "Secilen model GPU tabanli degil (yalnizca CPU). Cihaz CPU'ya ayarlanacak.")
-					self._force_cpu_selection()
-					self.engine.detector.set_device('cpu')
-					return
-				self.engine.detector.set_device(text)
-				if hasattr(self.engine.detector, 'set_half'):
-					self.engine.detector.set_half(self.chk_half.isChecked())
+			# Apply change only if GPU mode is active
+			if self.rdo_gpu.isChecked():
+				self._apply_device_change(True, text)
+				# persist immediately
+				try:
+					self._save_ui_config()
+				except Exception:
+					pass
 		except Exception:
 			pass
 
@@ -1047,29 +1088,29 @@ class MainWindow(QtWidgets.QMainWindow):
 				self.engine.detector.set_half(bool(checked))
 		except Exception:
 			pass
+		# persist immediately
+		try:
+			self._save_ui_config()
+		except Exception:
+			pass
 
-	def _refresh_device_variants(self, base: str) -> None:
-		self.cmb_device_variant.blockSignals(True)
-		self.cmb_device_variant.clear()
-		variants = ["cpu"]
-		if base in ("cuda", "gpu"):
-			try:
-				import torch  # type: ignore
-				if hasattr(torch, 'cuda') and torch.cuda.is_available():
-					count = torch.cuda.device_count()
-					for i in range(count):
-						variants.append(f"cuda:{i}")
-			except Exception:
-				pass
-		for v in variants:
-			self.cmb_device_variant.addItem(v)
-		# Select a sensible default
-		idx = self.cmb_device_variant.findText('cuda:0') if base in ("cuda", "gpu") else self.cmb_device_variant.findText('cpu')
-		if idx >= 0:
-			self.cmb_device_variant.setCurrentIndex(idx)
-		self.cmb_device_variant.blockSignals(False)
-		# Also update visibility to match base
-		self._update_device_controls_visibility()
+	def _refresh_cuda_devices(self) -> None:
+		# Populate CUDA device list from utils.device
+		try:
+			from ..utils.device import list_cuda_devices
+			self.cmb_device_variant.blockSignals(True)
+			self.cmb_device_variant.clear()
+			devices = list_cuda_devices()
+			if not devices:
+				self.cmb_device_variant.addItem('cuda')
+			else:
+				for d in devices:
+					self.cmb_device_variant.addItem(d)
+			# pick first
+			self.cmb_device_variant.setCurrentIndex(0)
+		finally:
+			self.cmb_device_variant.blockSignals(False)
+		self._update_device_group_visibility()
 
 	def _refresh_backends(self) -> None:
 		# List available GPU-capable modules/backends
@@ -1225,22 +1266,19 @@ class MainWindow(QtWidgets.QMainWindow):
 			self.on_count_method_changed(self.cmb_count_method.currentIndex())
 		except Exception:
 			pass
-		# Set initial device
+		# Set initial device using new UI
 		try:
-			dev = self.cmb_device.currentText().lower()
-			self._refresh_device_variants('cuda' if dev == 'gpu' else 'cpu')
+			use_gpu = bool(self.rdo_gpu.isChecked())
 			self._refresh_backends()
 			if hasattr(self.engine.detector, 'set_device'):
-				# Warn if model is not GPU-capable but GPU selected
-				if dev == 'gpu' and hasattr(self.engine.detector, 'is_gpu_capable') and not self.engine.detector.is_gpu_capable():
-					QtWidgets.QMessageBox.information(self, "Model GPU Desteklemiyor", "Secilen model GPU tabanli degil (yalnizca CPU). Cihaz CPU'ya ayarlanacak.")
-					dev = 'cpu'
+				if use_gpu and hasattr(self.engine.detector, 'is_gpu_capable') and not self.engine.detector.is_gpu_capable():
+					QtWidgets.QMessageBox.information(self, "Model GPU Desteklemiyor", "Secilen model GPU tabanli degil (yalnizca CPU). CPU'ya geciliyor.")
 					self._force_cpu_selection()
-				variant = self.cmb_device_variant.currentText().strip()
-				dev_str = variant if (dev == 'gpu' and variant.startswith('cuda')) else ('cuda' if dev == 'gpu' else 'cpu')
-				self.engine.detector.set_device(dev_str)
-				if dev == 'gpu' and hasattr(self.engine.detector, 'get_device') and self.engine.detector.get_device() != 'cuda' and not self.engine.detector.get_device().startswith('cuda'):
-					QtWidgets.QMessageBox.information(self, "CUDA Kullanilamiyor", "GPU secildi ancak CUDA kullanilamadi. CUDA destekli PyTorch ve suruculerin yüklü oldugundan emin olun. CPU'ya düsüldü.")
+				else:
+					dev_str = self.cmb_device_variant.currentText().strip() if use_gpu else 'cpu'
+					if not dev_str:
+						dev_str = 'cuda'
+					self.engine.detector.set_device(dev_str)
 		except Exception:
 			pass
 		# Stop any previous capture thread before reopening
@@ -1701,16 +1739,26 @@ class MainWindow(QtWidgets.QMainWindow):
 				self.engine.set_counting_method(self.state.count_method)
 		except Exception:
 			pass
-		# Device and variant
-		dev_raw = str(data.get("device", "cpu")).lower()
-		dev_base = "gpu" if dev_raw.startswith("cuda") else "cpu"
-		self.cmb_device.setCurrentText("GPU" if dev_base == "gpu" else "CPU")
-		self._refresh_device_variants("cuda" if dev_base == "gpu" else "cpu")
-		# Try to select exact variant if GPU
-		if dev_raw.startswith("cuda"):
-			idxv = self.cmb_device_variant.findText(dev_raw)
-			if idxv >= 0:
-				self.cmb_device_variant.setCurrentIndex(idxv)
+		# Device and variant (persisted as e.g., 'cpu' or 'cuda' / 'cuda:0')
+		try:
+			dev_raw = str(data.get("device", "cpu")).lower()
+			# Set radio buttons
+			if dev_raw.startswith("cuda") or dev_raw == "gpu":
+				self.rdo_gpu.setChecked(True)
+				self.rdo_cpu.setChecked(False)
+			else:
+				self.rdo_cpu.setChecked(True)
+				self.rdo_gpu.setChecked(False)
+			# Populate CUDA devices and select variant if provided
+			self._refresh_cuda_devices()
+			if dev_raw.startswith("cuda"):
+				idxv = self.cmb_device_variant.findText(dev_raw)
+				if idxv >= 0:
+					self.cmb_device_variant.setCurrentIndex(idxv)
+			# Reflect enabled/disabled controls
+			self._update_device_group_visibility()
+		except Exception:
+			pass
 		# Half precision
 		try:
 			self.chk_half.setChecked(bool(data.get("half", False)))
@@ -1746,15 +1794,7 @@ class MainWindow(QtWidgets.QMainWindow):
 			self.on_speed_changed(self.slider_speed.value())
 		except Exception:
 			pass
-		# Recent sources list (optional)
-		try:
-			recent = data.get("recent_sources", [])
-			if isinstance(recent, list):
-				for s in recent:
-					if isinstance(s, str) and self.cmb_source.findText(s) < 0:
-						self.cmb_source.addItem(s)
-		except Exception:
-			pass
+		# (removed) Recent sources list — handled per-category above
 
 	def _save_ui_config(self) -> None:
 		cfg_path = DEFAULT_APP_CFG
@@ -1787,9 +1827,8 @@ class MainWindow(QtWidgets.QMainWindow):
 			data["last_rtsp_url"] = rtsp_val
 		data["model"] = self.model_edit.text().strip()
 		data["confidence"] = round(self.state.confidence if hasattr(self, 'state') else (self.conf_slider.value() / 100.0), 2)
-		# Device: prefer exact variant if GPU
-		dev_sel = self.cmb_device.currentText().lower()
-		if dev_sel == "gpu":
+		# Device: prefer exact variant if GPU radios is selected
+		if self.rdo_gpu.isChecked():
 			variant = self.cmb_device_variant.currentText().strip() or "cuda"
 			data["device"] = variant
 		else:

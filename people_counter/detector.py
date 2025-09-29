@@ -45,29 +45,18 @@ class YoloDetector:
 		self.model = YOLO(model_path)
 		self.confidence = confidence
 		self.imgsz = imgsz
-		self.device = self._resolve_device(device)
-		self.use_half: bool = self.device.startswith("cuda")
+		# centralized device helpers
+		from .utils.device import resolve_device, default_half_for
+		self.device = resolve_device(device)
+		self.use_half: bool = default_half_for(self.device)
 		self._apply_device()
 
 	def is_gpu_capable(self) -> bool:
 		return True
 
 	def _resolve_device(self, device: str) -> str:
-		dev = (device or "cpu").lower()
-		if dev.startswith("cuda") or dev == "gpu":
-			if torch is not None and hasattr(torch, "cuda") and torch.cuda.is_available():
-				# Validate index if provided
-				if ":" in dev:
-					try:
-						idx = int(dev.split(":", 1)[1])
-						if idx < torch.cuda.device_count():
-							return f"cuda:{idx}"
-					except Exception:
-						pass
-				# Fallback to generic cuda (first GPU)
-				return "cuda"
-			return "cpu"
-		return "cpu"
+		from .utils.device import resolve_device
+		return resolve_device(device)
 
 	def _apply_device(self) -> None:
 		try:
@@ -79,15 +68,15 @@ class YoloDetector:
 		self.device = self._resolve_device(device)
 		self._apply_device()
 		# Disable half automatically if not CUDA
-		if not self.device.startswith('cuda'):
-			self.use_half = False
+		from .utils.device import default_half_for
+		self.use_half = default_half_for(self.device)
 
 	def get_device(self) -> str:
 		return self.device
 
 	def set_half(self, use_half: bool) -> None:
 		# half only meaningful on CUDA
-		self.use_half = bool(use_half) and self.device.startswith('cuda')
+		self.use_half = bool(use_half) and str(self.device).startswith('cuda')
 
 	def get_half(self) -> bool:
 		return bool(self.use_half)

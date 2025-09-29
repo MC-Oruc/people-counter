@@ -130,42 +130,13 @@ def run() -> int:
 	print(f"[self-test] source: {source}")
 	print(f"[self-test] model: {model if model else '(auto)'}")
 
-	# CPU
-	ok_cpu, msg_cpu = _run_headless(source, model, "cpu")
-	print(f"[self-test] CPU headless: {'OK' if ok_cpu else 'FAIL'} {msg_cpu}")
-
-	# GPU
+	# GPU (run first to avoid potential side-effects of CPU-only runs)
 	def _cuda_diag() -> str:
-		try:
-			import torch  # type: ignore
-			lines = []
-			lines.append(f"torch: {getattr(torch, '__version__', 'unknown')}")
-			try:
-				lines.append(f"torch.version.cuda: {getattr(getattr(torch, 'version', None), 'cuda', None)}")
-			except Exception:
-				lines.append("torch.version.cuda: (error)")
-			avail = hasattr(torch, 'cuda') and torch.cuda.is_available()
-			lines.append(f"cuda.is_available: {avail}")
-			try:
-				cnt = torch.cuda.device_count() if avail else 0
-				lines.append(f"cuda.device_count: {cnt}")
-				for i in range(cnt):
-					try:
-						name = torch.cuda.get_device_name(i)
-						lines.append(f"cuda:{i} -> {name}")
-					except Exception:
-						pass
-			except Exception:
-				lines.append("cuda.device_count: (error)")
-			return " | ".join(lines)
-		except Exception as e:
-			return f"torch import failed: {e}"
+		from .utils.device import cuda_diagnostics
+		return cuda_diagnostics()
 
-	try:
-		import torch  # type: ignore
-		cuda_ok = hasattr(torch, 'cuda') and torch.cuda.is_available()
-	except Exception:
-		cuda_ok = False
+	from .utils.device import is_cuda_available
+	cuda_ok = is_cuda_available()
 	print(f"[self-test] CUDA: {_cuda_diag()}")
 	if cuda_ok:
 		ok_gpu, msg_gpu = _run_headless(source, model, "cuda")
@@ -173,6 +144,10 @@ def run() -> int:
 	else:
 		ok_gpu, msg_gpu = True, "(skipped: CUDA unavailable)"
 		print(f"[self-test] GPU headless: SKIPPED {msg_gpu}")
+
+	# CPU after GPU check
+	ok_cpu, msg_cpu = _run_headless(source, model, "cpu")
+	print(f"[self-test] CPU headless: {'OK' if ok_cpu else 'FAIL'} {msg_cpu}")
 
 	# UI quick open/close
 	ok_ui, msg_ui = _test_ui_open_close()
