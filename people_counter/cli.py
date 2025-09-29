@@ -6,7 +6,10 @@ from typing import Optional
 import argparse
 
 from . import __version__
-from .utils.line_io import load_line, save_line
+from .utils.line_io import (
+	load_line_for_source,
+	save_line_for_source,
+)
 from .config import ensure_default_configs, DEFAULT_APP_CFG, DEFAULT_LINE_CFG
 from .utils.capture import open_capture
 
@@ -53,10 +56,12 @@ def cmd_edit_line(args: argparse.Namespace) -> int:
 		print("Kare okunamadi")
 		return 1
 	cv2.namedWindow("Cizgi Duzenle", cv2.WINDOW_NORMAL)
-	init_line = load_line(path)
+	# Load per-source saved line if any, fallback to old global schema
+	init_line = load_line_for_source(path, source)
 	edited = interactive_edit("Cizgi Duzenle", frame, init_line)
 	try:
-		save_line(path, edited)
+		# Save under per-source key
+		save_line_for_source(path, source, edited)
 	except Exception as e:
 		print(f"Kaydetme basarisiz: {e}")
 		return 1

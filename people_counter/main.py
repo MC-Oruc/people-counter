@@ -9,7 +9,7 @@ import numpy as np
 
 from .config import build_config
 from .core.engine import PeopleEngine
-from .utils.line_io import load_line, save_line
+from .utils.line_io import load_line_for_source, save_line_for_source
 from queue import Queue, Empty
 import threading
 import time
@@ -116,9 +116,18 @@ def main(argv: List[str] | None = None) -> int:
 			edited = interactive_edit(window_name, preview, line_to_use)
 			line_to_use = edited
 			if cfg.save_line_path:
-				save_line(cfg.save_line_path, edited)
+				save_line_for_source(cfg.save_line_path, cfg.source, edited)
 			# reset stream to start
 			cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+	else:
+		# If no interactive edit and a per-source line exists at save_line_path, load it
+		try:
+			if getattr(cfg, 'save_line_path', None):
+				stored = load_line_for_source(cfg.save_line_path, cfg.source)
+				if stored:
+					line_to_use = stored
+		except Exception:
+			pass
 
 	# Use shared engine
 	engine = PeopleEngine()

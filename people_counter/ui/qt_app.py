@@ -13,7 +13,16 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import threading
 
 from ..core.engine import PeopleEngine
-from ..utils.line_io import load_line, save_line, load_lines, save_lines
+from ..utils.line_io import (
+	load_line,
+	save_line,
+	load_lines,
+	save_lines,
+	load_lines_for_source,
+	load_line_for_source,
+	save_lines_for_source,
+	save_line_for_source,
+)
 from ..utils.capture import open_capture, is_rtsp_url
 from ..config import ensure_default_configs, DEFAULT_APP_CFG
 import yaml
@@ -1291,12 +1300,22 @@ class MainWindow(QtWidgets.QMainWindow):
 	def _auto_load_line(self) -> None:
 		try:
 			default_path = Path.cwd() / "config" / "line.yaml"
-			lines_t = load_lines(default_path)
-			if not lines_t:
-				line_t = load_line(default_path)
-				self.state.lines = [line_t]
+			# First, attempt per-source lines
+			if hasattr(self.state, 'source') and self.state.source is not None:
+				lines_t = load_lines_for_source(default_path, self.state.source)
+				if not lines_t:
+					line_t = load_line_for_source(default_path, self.state.source)
+					self.state.lines = [line_t]
+				else:
+					self.state.lines = lines_t
 			else:
-				self.state.lines = lines_t
+				# Fallback to global schema
+				lines_t = load_lines(default_path)
+				if not lines_t:
+					line_t = load_line(default_path)
+					self.state.lines = [line_t]
+				else:
+					self.state.lines = lines_t
 			self.state.selected_line_idx = 0 if self.state.lines else -1
 			self.video.set_lines(self.state.lines)
 			if hasattr(self.engine, 'set_lines'):
@@ -1312,11 +1331,18 @@ class MainWindow(QtWidgets.QMainWindow):
 		default_path.parent.mkdir(parents=True, exist_ok=True)
 		try:
 			lines = self.video.get_lines()
-			if len(lines) <= 1:
-				# Keep backward compatibility: write single-line schema
-				save_line(default_path, lines[0] if lines else (100, 200, 500, 200))
+			if hasattr(self.state, 'source') and self.state.source is not None:
+				# Save under per-source key primarily
+				if len(lines) <= 1:
+					save_line_for_source(default_path, self.state.source, lines[0] if lines else (100,200,500,200))
+				else:
+					save_lines_for_source(default_path, self.state.source, lines)
 			else:
-				save_lines(default_path, lines)
+				# Fallback to global schema
+				if len(lines) <= 1:
+					save_line(default_path, lines[0] if lines else (100, 200, 500, 200))
+				else:
+					save_lines(default_path, lines)
 		except Exception as e:
 			QtWidgets.QMessageBox.critical(self, "Hata", f"Kaydetme basarisiz: {e}")
 
