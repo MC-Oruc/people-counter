@@ -515,9 +515,16 @@ class MainWindow(QtWidgets.QMainWindow):
 		_lines_btn_row = QtWidgets.QHBoxLayout()
 		_lines_btn_row.addWidget(self.btn_add_line)
 		_lines_btn_row.addWidget(self.btn_remove_line)
+		_lines_btn_row.addWidget(self.btn_save)
+		# Extra controls for lines: edit toggle and visibility trails
+		_lines_ctrl_row = QtWidgets.QHBoxLayout()
+		_lines_ctrl_row.addWidget(self.chk_edit)
+		_lines_ctrl_row.addWidget(self.chk_show_trails)
+		_lines_ctrl_row.addStretch(1)
 		_lines_group_layout = QtWidgets.QVBoxLayout()
 		_lines_group_layout.addWidget(self.list_lines)
 		_lines_group_layout.addLayout(_lines_btn_row)
+		_lines_group_layout.addLayout(_lines_ctrl_row)
 		_lines_group = QtWidgets.QGroupBox("Cizgiler")
 		_lines_group.setLayout(_lines_group_layout)
 
@@ -526,9 +533,6 @@ class MainWindow(QtWidgets.QMainWindow):
 		buttons_layout.addWidget(self.btn_toggle, 0, 1)
 		buttons_layout.addWidget(self.btn_record, 0, 2)
 		buttons_layout.addWidget(self.btn_reset, 0, 3)
-		buttons_layout.addWidget(self.btn_save, 1, 1)
-		buttons_layout.addWidget(self.chk_edit, 1, 2)
-		buttons_layout.addWidget(self.chk_show_trails, 1, 3)
 		# RTSP kalite secenegi RTSP panelinde gosteriliyor
 		# Stream metrics label
 		self.lbl_stream = QtWidgets.QLabel("Akis: - | Gecikme: - | FPS: -")
@@ -564,8 +568,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
 		root = QtWidgets.QVBoxLayout(central)
 		root.addWidget(splitter)
-
-		# Removed toolbar per user preference; actions remain accessible via buttons
 
 		# Status bar: move counts and stream info here
 		self.setStatusBar(QtWidgets.QStatusBar())
